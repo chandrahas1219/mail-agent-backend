@@ -11,7 +11,7 @@ import { google } from "googleapis";
 const oauth2Client = new google.auth.OAuth2(
   process.env.CLIENT_ID,
   process.env.CLIENT_SECRET,
-  ""https://YOUR-APP.onrender.com/auth/google/callback""
+  "https://mail-agent-backend.onrender.com/auth/google/callback"
 );
 
 
