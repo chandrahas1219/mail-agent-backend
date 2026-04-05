@@ -68,7 +68,7 @@ app.get("/auth/google/callback", async (req, res) => {
 // });
 savedTokens = tokens;
 
-res.send("Login successful ✅ You can close this tab");
+res.redirect("https://mail-agent-frontend.netlify.app");
 
   } catch (error) {
     console.error(error);
@@ -245,9 +245,10 @@ oauth2Client.setCredentials(savedTokens);
     if (!email) {
       // Fetch from Google Sheets
       const sheets = google.sheets({ version: "v4", auth: oauth2Client });
+const sheetId = req.body.sheetId || "1Sp-MuTFYaI0e9liyBJROG1ZZiNN5udPb0_KDuMkiooE";
 
       const sheetRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: "1Sp-MuTFYaI0e9liyBJROG1ZZiNN5udPb0_KDuMkiooE",
+        spreadsheetId: sheetId,
         range: "Sheet1!A:B",
       });
 
