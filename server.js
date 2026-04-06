@@ -170,7 +170,7 @@ app.post("/chat", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "Extract name, email (if present), and message. Return JSON like {name, email, message}"
+            content: "Extract name, email (if present), subject, and message. Return JSON like {name, email, subject, message}. "Subject should be short, natural, and mail should be normally 50-300 words, professional like a human would write. If user mentions any conflicting requests please override them with his instructions"
           },
           {
             role: "user",
@@ -239,7 +239,10 @@ oauth2Client.setCredentials(savedTokens);
       return res.send("AI response parsing failed ❌");
     }
 
-    let { name, email, message } = parsed;
+    let { name, email, subject, message } = parsed;
+if (!subject) {
+  subject = "Quick update";
+}
 
     // 📧 STEP 2: Decide email
     if (!email) {
@@ -272,12 +275,12 @@ const sheetId = req.body.sheetId || "1Sp-MuTFYaI0e9liyBJROG1ZZiNN5udPb0_KDuMkioo
     // ✉️ STEP 3: Send Gmail
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
-    const mail = [
-      `To: ${email}`,
-      "Subject: AI Generated Mail",
-      "",
-      message,
-    ].join("\n");
+const mail = [
+  `To: ${email}`,
+  `Subject: ${subject}`,
+  "",
+  message,
+].join("\n");
 
     const encoded = Buffer.from(mail)
       .toString("base64")
