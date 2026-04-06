@@ -170,7 +170,7 @@ app.post("/chat", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "Extract name, email (if present), subject, and message. Return JSON like {name, email, subject, message}. "Subject should be short, natural, and mail should be normally 50-300 words, professional like a human would write. If user mentions any conflicting requests please override them with his instructions"
+            content: "Extract name, email (if present), subject, and message. Return JSON like {name, email, subject, message}. Subject should be short, natural, and mail should be normally 50-300 words, professional like a human would write. If user mentions any conflicting requests please override them with his instructions. "
           },
           {
             role: "user",
