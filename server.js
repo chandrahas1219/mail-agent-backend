@@ -170,7 +170,7 @@ app.post("/chat", async (req, res) => {
         messages: [
           {
             role: "system",
-            content: "Extract name, email (if present), subject, and message. Return JSON like {name, email, subject, message}. Subject should be short, natural, and mail should be normally 50-300 words, professional like a human would write. If user mentions any conflicting requests please override them with his instructions. "
+            content: "Extract name, email (if present), subject, and message. Return JSON like {name, email, subject, message}. Understand the user issue and generate apprpriate subject. If user mentions mail length take it or by default range it from 50-250 words. "
           },
           {
             role: "user",
@@ -248,7 +248,22 @@ if (!subject) {
     if (!email) {
       // Fetch from Google Sheets
       const sheets = google.sheets({ version: "v4", auth: oauth2Client });
-const sheetId = req.body.sheetId || "1Sp-MuTFYaI0e9liyBJROG1ZZiNN5udPb0_KDuMkiooE";
+function extractSheetId(input) {
+  if (!input) return null;
+  const match = input.match(/\/d\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : input;
+}
+
+const userInput = req.body.sheetLink || req.body.sheetId;
+const sheetId =
+  extractSheetId(userInput) ||
+  "1Sp-MuTFYaI0e9liyBJROG1ZZiNN5udPb0_KDuMkiooE";
+
+if (!sheetId) {
+  return res.status(400).json({
+    error: "Invalid Google Sheets link"
+  });
+}
 
       const sheetRes = await sheets.spreadsheets.values.get({
         spreadsheetId: sheetId,
