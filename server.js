@@ -15,10 +15,8 @@ const oauth2Client = new google.auth.OAuth2(
 
 const app = express();
 
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+app.use(cors());
+
 app.use(express.json());
 app.use(cookieParser());
 
