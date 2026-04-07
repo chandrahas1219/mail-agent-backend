@@ -117,7 +117,15 @@ Return format:
       }),
     });
 
-    const data = await response.json();
+    const text = await res.text();
+
+let data;
+try {
+  data = JSON.parse(text);
+} catch {
+  document.getElementById("result").innerText = text;
+  return;
+}
     res.send(data.choices[0].message.content);
 
   } catch (error) {
