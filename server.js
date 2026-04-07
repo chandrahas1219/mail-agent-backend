@@ -15,11 +15,16 @@ const oauth2Client = new google.auth.OAuth2(
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type"]
+}));
+
+app.options("*", cors());
 
 app.use(express.json());
 app.use(cookieParser());
-
 let savedTokens = null;
 
 // ✅ Root
