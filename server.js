@@ -74,7 +74,7 @@ res.redirect(`https://mail-agent-frontend.netlify.app?uid=${uid}`);
 
 
   } catch (error) {
-    console.error(error);
+    console.error("FULL ERROR:", error.response?.data || error.message);
     res.send("Login failed ❌");
   }
 });
@@ -124,6 +124,7 @@ app.get("/get-email", async (req, res) => {
 // 📧 SEND MAIL
 app.post("/send-mail", async (req, res) => {
   const userMessage = req.body.message;
+  console.log("UID received:", req.body.uid);
 
   // const uid = req.cookies.uid;
   const uid = req.body.uid;
