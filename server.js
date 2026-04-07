@@ -8,6 +8,7 @@ import { google } from "googleapis";
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1); 
 
 app.use(cors({
   origin: "https://mail-agent-frontend.netlify.app",
@@ -65,7 +66,8 @@ app.get("/auth/google/callback", async (req, res) => {
 res.cookie("uid", uid, {
   httpOnly: true,
   sameSite: "none",
-  secure: true
+  secure: true,
+  path: "/"
 });
 
     res.redirect("https://mail-agent-frontend.netlify.app");
@@ -122,6 +124,7 @@ app.post("/send-mail", async (req, res) => {
   const userMessage = req.body.message;
 
   const uid = req.cookies.uid;
+  console.log("Cookies:", req.cookies);
   const tokens = userTokens[uid];
 
   if (!tokens) {
