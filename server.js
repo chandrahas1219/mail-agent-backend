@@ -63,14 +63,16 @@ app.get("/auth/google/callback", async (req, res) => {
     const uid = Math.random().toString(36).substring(7);
     userTokens[uid] = tokens;
 
-res.cookie("uid", uid, {
-  httpOnly: true,
-  sameSite: "none",
-  secure: true,
-  path: "/"
-});
+// res.cookie("uid", uid, {
+//   httpOnly: true,
+//   sameSite: "none",
+//   secure: true,
+//   path: "/"
+// });
 
-    res.redirect("https://mail-agent-frontend.netlify.app");
+//     res.redirect("https://mail-agent-frontend.netlify.app");
+res.redirect(`https://mail-agent-frontend.netlify.app?uid=${uid}`);
+
 
   } catch (error) {
     console.error(error);
@@ -82,7 +84,8 @@ res.cookie("uid", uid, {
 app.get("/get-email", async (req, res) => {
   const nameToFind = req.query.name;
 
-  const uid = req.cookies.uid;
+  // const uid = req.cookies.uid;
+  const uid = req.query.uid;
   const tokens = userTokens[uid];
 
   if (!tokens) {
@@ -123,7 +126,8 @@ app.get("/get-email", async (req, res) => {
 app.post("/send-mail", async (req, res) => {
   const userMessage = req.body.message;
 
-  const uid = req.cookies.uid;
+  // const uid = req.cookies.uid;
+  const uid = req.body.uid;
   console.log("Cookies:", req.cookies);
   const tokens = userTokens[uid];
 
