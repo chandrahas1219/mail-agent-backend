@@ -10,9 +10,10 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: true,
+  origin: "https://mail-agent-frontend.netlify.app",
   credentials: true
 }));
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -61,10 +62,11 @@ app.get("/auth/google/callback", async (req, res) => {
     const uid = Math.random().toString(36).substring(7);
     userTokens[uid] = tokens;
 
-    res.cookie("uid", uid, {
-      httpOnly: true,
-      sameSite: "lax"
-    });
+res.cookie("uid", uid, {
+  httpOnly: true,
+  sameSite: "none",
+  secure: true
+});
 
     res.redirect("https://mail-agent-frontend.netlify.app");
 
