@@ -143,7 +143,7 @@ app.post("/generate-draft", async (req, res) => {
   let senderName = senderEmail.split("@")[0];
   senderName =
     senderName.charAt(0).toUpperCase() + senderName.slice(1);
-
+console.time("AI");
   try {
     const aiRes = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
@@ -152,7 +152,7 @@ app.post("/generate-draft", async (req, res) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "mistral-small",
+        model: "mistral-tiny",
         messages: [
           {
             role: "system",
@@ -185,7 +185,7 @@ Output ONLY JSON.
         ],
       }),
     });
-
+console.timeEnd("AI");
     const aiData = await aiRes.json();
     const aiText = aiData.choices[0].message.content;
 
