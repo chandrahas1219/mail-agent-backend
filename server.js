@@ -11,8 +11,7 @@ const app = express();
 app.set("trust proxy", 1); 
 
 app.use(cors({
-  origin: "https://mail-agent-frontend.netlify.app",
-  credentials: true
+  origin: "*"
 }));
 
 app.use(express.json());
