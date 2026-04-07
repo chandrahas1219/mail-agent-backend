@@ -126,8 +126,7 @@ Return format:
   }
 });
 
-// ✅ Send Mail (FULLY FIXED)
-app.post("/send-mail", async (req, res) => {
+app.post("/generate-draft", async (req, res) => {
   const userMessage = req.body.message;
 
   if (!savedTokens) {
@@ -136,8 +135,16 @@ app.post("/send-mail", async (req, res) => {
 
   oauth2Client.setCredentials(savedTokens);
 
+  const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+
+  const profile = await gmail.users.getProfile({ userId: "me" });
+  const senderEmail = profile.data.emailAddress;
+
+  let senderName = senderEmail.split("@")[0];
+  senderName =
+    senderName.charAt(0).toUpperCase() + senderName.slice(1);
+
   try {
-    // 🧠 AI Call
     const aiRes = await fetch("https://api.mistral.ai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -150,21 +157,25 @@ app.post("/send-mail", async (req, res) => {
           {
             role: "system",
             content: `
-You are an AI mail assistant.
+You are a professional email assistant.
 
-Extract:
-- name
-- email (if present)
-- subject
-- message
-
-Return ONLY JSON:
+Return STRICT JSON:
 {
   "name": "",
   "email": "",
   "subject": "",
   "message": ""
 }
+
+Rules:
+- Subject must be natural and professional
+- Message must be clear, structured, human
+- Start with greeting
+- End with:
+Thanks,
+${senderName}
+
+Output ONLY JSON.
 `
           },
           {
@@ -184,20 +195,39 @@ Return ONLY JSON:
     try {
       parsed = JSON.parse(cleanText);
     } catch {
-      console.log("AI RAW:", aiText);
       return res.send("AI parsing failed ❌");
     }
 
-    let { name, email, subject, message } = parsed;
+    res.json(parsed);
 
-    if (!subject) subject = "Quick update";
+  } catch (error) {
+    console.error(error);
+    res.send("Error generating draft ❌");
+  }
+});
+
+app.post("/send-mail", async (req, res) => {
+  const { subject, message, email, name, sheetId } = req.body;
+
+  if (!savedTokens) {
+    return res.send("Login first ❌");
+  }
+
+  if (!subject || !message) {
+    return res.send("Draft missing ❌");
+  }
+
+  oauth2Client.setCredentials(savedTokens);
+
+  try {
+    let finalEmail = email;
 
     // 📊 Sheet lookup if email missing
-    if (!email) {
+    if (!finalEmail) {
       const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
       const sheetRes = await sheets.spreadsheets.values.get({
-        spreadsheetId: "1Sp-MuTFYaI0e9liyBJROG1ZZiNN5udPb0_KDuMkiooE",
+        spreadsheetId: sheetId || "1Sp-MuTFYaI0e9liyBJROG1ZZiNN5udPb0_KDuMkiooE",
         range: "Sheet1!A:B",
       });
 
@@ -205,22 +235,19 @@ Return ONLY JSON:
 
       for (let row of rows) {
         if (row[0].toLowerCase() === name.toLowerCase()) {
-          email = row[1];
+          finalEmail = row[1];
           break;
         }
       }
 
-      if (!email) return res.send("Name not found ❌");
+      if (!finalEmail) return res.send("Name not found ❌");
     }
 
     // ✉️ Send Mail
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
-    const senderName = "AI Mail Agent";
-
     const mail = [
-      `From: "${senderName}" <me>`,
-      `To: ${email}`,
+      `To: ${finalEmail}`,
       `Subject: ${subject}`,
       "",
       message,
@@ -233,12 +260,10 @@ Return ONLY JSON:
 
     await gmail.users.messages.send({
       userId: "me",
-      requestBody: {
-        raw: encoded,
-      },
+      requestBody: { raw: encoded },
     });
 
-    res.send(`Email sent to ${email} ✅`);
+    res.send(`Email sent to ${finalEmail} ✅`);
 
   } catch (error) {
     console.error(error);
