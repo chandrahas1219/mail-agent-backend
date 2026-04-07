@@ -133,10 +133,12 @@ try {
 });
 
 app.post("/generate-draft", async (req, res) => {
+  console.log("HIT generate-draft");
   const userMessage = req.body.message;
 
   if (!savedTokens) {
-    return res.send("Login first ❌");
+    console.log("NO TOKENS");
+    return res.status(401).send("Login first ❌");
   }
 
   oauth2Client.setCredentials(savedTokens);
