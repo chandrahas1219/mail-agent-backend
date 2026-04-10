@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>AI Mail Agent</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>🤖 AI Mail Agent</h1>
+  <p class="subtitle">Send emails using natural language</p>
+
+  <div class="actions">
+    <button class="login" onclick="login()">Login with Google</button>
+    <button class="logout" onclick="logout()">Logout</button>
+  </div>
+
+  <div class="card">
+    <h3>📊 Contacts</h3>
+
+<a href="https://docs.google.com/spreadsheets/d/1sedOR3I3i0v6IROniw0BzWUPN5ikdMEZzjyEFLOEZIo" target="_blank">
+  <button class="template">Get Template Sheet</button>
+</a>
+
+<input id="sheetLink" placeholder="Paste your Google Sheet link (optional)">
+
+  </div>
+
+  <div class="card">
+    <h3>💬 Message</h3>
+
+<textarea id="message" placeholder="e.g. Mail Rahul about meeting tomorrow at 5pm politely" rows="4"></textarea>
+
+<button class="template" onclick="generateDraft()">Generate Draft</button>
+
+<p id="result"></p>
+
+  </div>
+
+  <div class="card">
+    <h3>📝 Draft Preview</h3>
+
+<input id="subject" placeholder="Subject">
+
+<textarea id="draft" rows="8"></textarea>
+
+<button id="sendBtn" class="send" onclick="sendMail()">Send Mail</button>
+
+  </div>
+
+</div>
+
+<script>
+const backend = "";
+
+function login() {
+  window.location.href = backend + "/auth/google";
+}
+
+function logout() {
+  fetch(backend + "/logout");
+  alert("Logged out ✅");
+}
+
+async function generateDraft() {
+  const msg = document.getElementById("message").value.trim();
+  const result = document.getElementById("result");
+
+  if (!msg) {
+    result.innerText = "Enter message first ❌";
+    return;
+  }
+
+  result.innerText = "Generating... ⏳";
+
+  const res = await fetch(backend + "/generate-draft", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ message: msg })
+  });
+
+  const text = await res.text();
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    result.innerText = text;
+    return;
+  }
+
+  document.getElementById("subject").value = data.subject || "";
+  document.getElementById("draft").value = data.message || "";
+
+  result.innerText = "Draft ready ✅";
+}
+
+// ✉️ Send Mail
+async function sendMail() {
+  const subject = document.getElementById("subject").value.trim();
+  const message = document.getElementById("draft").value.trim();
+  const sheetLink = document.getElementById("sheetLink").value.trim();
+
+  const result = document.getElementById("result");
+  const btn = document.getElementById("sendBtn");
+
+  if (!subject || !message) {
+    result.innerText = "Draft incomplete ❌";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = "Sending...";
+  result.innerText = "Processing ⏳";
+
+  try {
+    const res = await fetch(backend + "/send-mail", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        subject,
+        message,
+        sheetId: sheetLink
+      })
+    });
+
+    const text = await res.text();
+    result.innerText = text;
+
+  } catch (err) {
+    result.innerText = "Server error ❌";
+  }
+
+  btn.disabled = false;
+  btn.innerText = "Send Mail";
+}
+</script>
+
+</body>
+</html>
