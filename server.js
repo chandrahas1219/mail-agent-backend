@@ -4,16 +4,21 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import fetch from "node-fetch";
 import path from "path";
+import crypto from "crypto";
 
 import { google } from "googleapis";
 
 dotenv.config();
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.CLIENT_ID,
-  process.env.CLIENT_SECRET,
-  "https://mail-agent-backend.onrender.com/auth/google/callback"
-);
+function getOAuthClient() {
+  return new google.auth.OAuth2(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    "https://mail-agent-backend.onrender.com/auth/google/callback"
+  );
+}
+
+const sessions = new Map();
 
 const app = express();
 
@@ -29,7 +34,6 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser());
-let savedTokens = null;
 
 app.get("/", (req, res) => {
   res.sendFile(path.resolve("public/index.html"));
@@ -47,6 +51,7 @@ app.listen(process.env.PORT, () => {
 
 // ✅ Google Login
 app.get("/auth/google", (req, res) => {
+  const oauth2Client = getOAuthClient();
   const url = oauth2Client.generateAuthUrl({
     access_type: "offline",
     scope: [
@@ -66,12 +71,13 @@ app.get("/auth/google/callback", async (req, res) => {
   const code = req.query.code;
 
   try {
+    const oauth2Client = getOAuthClient();
     const { tokens } = await oauth2Client.getToken(code);
 
-    savedTokens = tokens; // ✅ store first
-    oauth2Client.setCredentials(tokens); // ✅ then set
+    const secretKey = crypto.randomBytes(32).toString('hex');
+    sessions.set(secretKey, tokens);
 
-    res.redirect("https://mail-agent-frontend.netlify.app");
+    res.redirect(`https://mail-agent-frontend.netlify.app?token=${secretKey}`);
 
   } catch (error) {
     console.error(error);
@@ -149,12 +155,15 @@ app.post("/generate-draft", async (req, res) => {
   console.log("HIT generate-draft");
   const userMessage = req.body.message;
 
-  if (!savedTokens) {
-    console.log("NO TOKENS");
+  const token = req.headers.authorization?.split(" ")[1] || req.body.token || req.query.token;
+  if (!token || !sessions.has(token)) {
+    console.log("NO TOKENS OR INVALID TOKEN");
     return res.status(401).send("Login first ❌");
   }
 
-  oauth2Client.setCredentials(savedTokens);
+  const userTokens = sessions.get(token);
+  const oauth2Client = getOAuthClient();
+  oauth2Client.setCredentials(userTokens);
 
   const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
@@ -230,7 +239,8 @@ console.timeEnd("AI");
 app.post("/send-mail", async (req, res) => {
   const { subject, message, email, name, sheetId } = req.body;
 
-  if (!savedTokens) {
+  const token = req.headers.authorization?.split(" ")[1] || req.body.token || req.query.token;
+  if (!token || !sessions.has(token)) {
     return res.send("Login first ❌");
   }
 
@@ -238,7 +248,9 @@ app.post("/send-mail", async (req, res) => {
     return res.send("Draft missing ❌");
   }
 
-  oauth2Client.setCredentials(savedTokens);
+  const userTokens = sessions.get(token);
+  const oauth2Client = getOAuthClient();
+  oauth2Client.setCredentials(userTokens);
 
   try {
     let finalEmail = email;
@@ -294,6 +306,9 @@ app.post("/send-mail", async (req, res) => {
 
 // ✅ Logout
 app.get("/logout", (req, res) => {
-  savedTokens = null;
+  const token = req.headers.authorization?.split(" ")[1] || req.body.token || req.query.token;
+  if (token) {
+    sessions.delete(token);
+  }
   res.send("Logged out ✅");
 });
