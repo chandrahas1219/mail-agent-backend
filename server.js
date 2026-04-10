@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import fetch from "node-fetch";
+import path from "path";
+
 import { google } from "googleapis";
 
 dotenv.config();
@@ -15,6 +17,8 @@ const oauth2Client = new google.auth.OAuth2(
 
 const app = express();
 
+app.use(express.static("public"));
+
 app.use(cors({
   origin: "*",
   methods: ["GET", "POST", "OPTIONS"],
@@ -26,6 +30,10 @@ app.options("/*", cors());
 app.use(express.json());
 app.use(cookieParser());
 let savedTokens = null;
+
+app.get("/", (req, res) => {
+  res.sendFile(path.resolve("public/index.html"));
+});
 
 // ✅ Root
 app.get("/", (req, res) => {
