@@ -25,7 +25,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type"]
 }));
 
-app.options("/*", cors());
+//app.options("/*", cors());
 
 app.use(express.json());
 app.use(cookieParser());
@@ -84,7 +84,7 @@ app.post("/chat", async (req, res) => {
   const userMessage = req.body.message;
 
   try {
-    const response = await fetch("https://api.mistral.ai/v1/chat/completions", {
+    const response = await fetch("/", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${process.env.MISTRAL_API_KEY}`,
