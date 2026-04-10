@@ -1,11 +1,31 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+
+//mongoose import
+import mongoose from "mongoose";
+
+//session import
+import session from "express-session";
+
 import cookieParser from "cookie-parser";
 import fetch from "node-fetch";
 import { google } from "googleapis";
 
 dotenv.config();
+
+//connection code
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected ✅"))
+  .catch(err => console.log(err));
+
+  const userSchema = new mongoose.Schema({
+  email: String,
+  tokens: Object,
+});
+
+const User = mongoose.model("User", userSchema);
+
 
 const oauth2Client = new google.auth.OAuth2(
   process.env.CLIENT_ID,
@@ -15,6 +35,14 @@ const oauth2Client = new google.auth.OAuth2(
 
 const app = express();
 
+//middleware for connection code
+app.use(session({
+  secret: "secret-key",
+  resave: false,
+  saveUninitialized: true,
+}));
+
+
 app.use(cors({
   origin: true,
   credentials: true
@@ -22,7 +50,7 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser());
 
-let savedTokens = null;
+//let savedTokens = null;
 
 // ✅ Root
 app.get("/", (req, res) => {
@@ -57,8 +85,24 @@ app.get("/auth/google/callback", async (req, res) => {
   try {
     const { tokens } = await oauth2Client.getToken(code);
 
-    savedTokens = tokens; // ✅ store first
+    //savedTokens = tokens; // ✅ store first
     oauth2Client.setCredentials(tokens); // ✅ then set
+
+
+  // get user email
+const oauth2 = google.oauth2({ auth: oauth2Client, version: "v2" });
+const userInfo = await oauth2.userinfo.get();
+const email = userInfo.data.email;
+
+// ✅ ADD HERE (save to DB)
+await User.findOneAndUpdate(
+  { email },
+  { tokens },
+  { upsert: true }
+);
+
+// ✅ ADD HERE (create session)
+req.session.user = email;
 
     res.redirect("https://mail-agent-frontend.netlify.app");
 
@@ -130,11 +174,26 @@ Return format:
 app.post("/send-mail", async (req, res) => {
   const userMessage = req.body.message;
 
-  if (!savedTokens) {
-    return res.send("Login first ❌");
-  }
+  const emailFromSession = req.session.user;
 
-  oauth2Client.setCredentials(savedTokens);
+if (!emailFromSession) {
+  return res.send("Login first ❌");
+}
+
+// get user from DB
+const user = await User.findOne({ email: emailFromSession });
+
+if (!user) {
+  return res.send("User not found ❌");
+}
+
+// use user's tokens
+oauth2Client.setCredentials(user.tokens);
+  // if (!savedTokens) {
+  //   return res.send("Login first ❌");
+  // }
+
+  // oauth2Client.setCredentials(savedTokens);
 
   try {
     // 🧠 AI Call
@@ -248,6 +307,7 @@ Return ONLY JSON:
 
 // ✅ Logout
 app.get("/logout", (req, res) => {
-  savedTokens = null;
+  req.session.destroy();
+  //savedTokens = null;
   res.send("Logged out ✅");
 });
