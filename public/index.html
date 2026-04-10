@@ -56,12 +56,27 @@
 <script>
 const backend = "";
 
+window.onload = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get("token");
+  if (token) {
+    localStorage.setItem("authToken", token);
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+};
+
 function login() {
   window.location.href = backend + "/auth/google";
 }
 
 function logout() {
-  fetch(backend + "/logout");
+  const token = localStorage.getItem("authToken");
+  fetch(backend + "/logout", {
+    headers: {
+      "Authorization": `Bearer ${token}`
+    }
+  });
+  localStorage.removeItem("authToken");
   alert("Logged out ✅");
 }
 
@@ -76,10 +91,13 @@ async function generateDraft() {
 
   result.innerText = "Generating... ⏳";
 
+  const token = localStorage.getItem("authToken");
+
   const res = await fetch(backend + "/generate-draft", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${token}`
     },
     body: JSON.stringify({ message: msg })
   });
@@ -119,10 +137,13 @@ async function sendMail() {
   result.innerText = "Processing ⏳";
 
   try {
+    const token = localStorage.getItem("authToken");
+
     const res = await fetch(backend + "/send-mail", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
       },
       body: JSON.stringify({
         subject,
